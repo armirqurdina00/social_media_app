@@ -4,7 +4,7 @@ import { useToken } from "@/app/TokenContext";
 import UsersList from "@/app/components/UsersList";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { backendHost } from '../constants'
+import { backendHost } from '../../constants'
 
 async function getUsers(token, user) {
     const res = await fetch(`${backendHost}/user-search?user=${user}`, {
@@ -42,7 +42,7 @@ export default function Search({ params }) {
 
 
     return (
-        <div className="sm:w-[400px] w-[300px] mx-auto my-4">
+        <div className="w-[90%] sm:[400px] md:w-[600px] mx-auto my-4">
             <h1 className="text-xl text-center my-4">Users</h1>
             {users.length == 0 && <div className="text-center">No user found</div>}
             {users && <UsersList users={users} />}

@@ -82,12 +82,12 @@ export default function SearchPage() {
     }, [userSearch])
 
     return (
-        <div className="sm:w-[400px] w-[300px] mx-auto my-4">
+        <div className="w-[90%] sm:[400px] md:w-[600px] mx-auto my-4">
             <h1 className="text-xl text-center my-4">Users</h1>
             <div className="flex">
                 <input
                     type="text"
-                    className="text-black py-2 px-4 rounded-xl sm:w-[400px] w-[100%] bg-white"
+                    className="text-black py-2 px-4 rounded-xl w-[100%] bg-white"
                     value={userSearch}
                     placeholder="Search user"
                     onChange={handleOnChangeUserSearch}
