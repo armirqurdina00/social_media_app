@@ -9,6 +9,7 @@ const db = require('./models')
 const User = require('./models/User');
 const Post = require('./models/Post');
 const Comment = require('./models/Comment')
+const Like = require('./models/Like')
 const { Op } = require('sequelize');
 require('dotenv').config()
 
@@ -56,11 +57,11 @@ app.post('/login', async (req, res) => {
     }
 });
 
-app.get('/posts', verifyToken, async (req, res) => {
+app.get('/posts', async (req, res) => {
     // FIND ALL POSTS
     const posts = await Post.findAll({
-        include: [User, { model: Comment, include: [User] }],
-        order: [['likes', 'DESC']]
+        include: [User, { model: Comment, include: [User] }, { model: Like, include: [User] }],
+        // order: [[Like, 'count', 'DESC']]
     })
     return res.json(posts)
 })
@@ -109,6 +110,17 @@ app.delete('/profile/delete', verifyToken, async (req, res) => {
     res.status(200).send('User deleted')
 });
 
+app.post('/like/add', verifyToken, async (req, res) => {
+    const { post_id } = req.body;
+    const like = await Like.create( { post_id: post_id, user_id: req.user.user.id });
+    res.status(200).send('Like created');
+});
+
+app.delete('/like/delete', verifyToken, async (req, res) => {
+    const { post_id } = req.body;
+    await Like.destroy({ where: { post_id: post_id, user_id: req.user.user.id } })
+    res.status(200).send('Like deleted');
+});
 
 db.sequelize.sync().then(() => {
     app.listen(3001, () => {

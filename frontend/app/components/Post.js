@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import CommentIcon from '@mui/icons-material/Comment';
 import ThumbUpIcon from '@mui/icons-material/ThumbUp';
@@ -13,15 +13,22 @@ import Image from "next/image";
 
 export default function Post({ post }) {
 
-  const [comments, setComments] = useState([])
-  const [addComment, setAddComment] = useState(false)
-  const [showComments, setShowComments] = useState(false)
-  const [comment, setComment] = useState('')
-
   let decodedData = {}
 
   const { token } = useToken();
   if (token) decodedData = jwtDecode(token);
+
+  const [comments, setComments] = useState([])
+  const [addComment, setAddComment] = useState(false)
+  const [showComments, setShowComments] = useState(false)
+  const [comment, setComment] = useState('')
+  const [likes, setLikes] = useState(false)
+  const [postLiked, setPostLiked] = useState(false)
+
+  useEffect(() => {
+    setLikes(post.Likes.length)
+    setPostLiked(post.Likes.find(like => like.user_id === decodedData.user.id))
+  }, [])
 
   const handleCommentChange = (e) => {
     setComment(e.target.value)
@@ -67,7 +74,44 @@ export default function Post({ post }) {
     else {
       setShowComments(!showComments)
     }
+  }
+
+  async function handleLike(id) {
+    if (postLiked) {
+      const res = await fetch(`http://localhost:3001/like/delete`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: token,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          'post_id': id,
+        }),
+      })
+      if (res.ok) {
+        setPostLiked(false)
+        let previousLikes = likes;
+        setLikes(previousLikes - 1);
+      }
     }
+    else {
+      const res = await fetch(`http://localhost:3001/like/add`, {
+        method: 'POST',
+        headers: {
+          Authorization: token,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          'post_id': id,
+        }),
+      })
+      if (res.ok) {
+        setPostLiked(true)
+        let previousLikes = likes;
+        setLikes(previousLikes + 1);
+      }
+    }
+  }
 
   return (
     <div className="bg-gray-100 rounded-xl border border-gray-300 shadow-xl overflow-hidden bg-gray-100 p-6 my-4">
@@ -85,7 +129,7 @@ export default function Post({ post }) {
         </div>
       )}
       <div className="flex justify-between mt-4">
-        <div className="text-sm">{post.likes} likes</div>
+        <div className="text-sm">{likes} {likes === 1 ? 'like' : 'likes'}</div>
         <div onClick={() => getComments(post.id)} className="text-sm cursor-pointer hover:underline">
           {post.Comments.length > 1 && <div>{post.Comments.length} comments </div>}
           {post.Comments.length == 0 && <div>{post.Comments.length} comments </div>}
@@ -93,22 +137,22 @@ export default function Post({ post }) {
         </div>
       </div>
       <div className="flex justify-between mt-4 items-center">
-        <div className=""><span className="mx-1"><ThumbUpIcon /></span>Like</div>
+        <div className={`cursor-pointer ${postLiked && 'text-blue-700'}`} onClick={() => handleLike(post.id)}><span className="mx-1"><ThumbUpIcon /></span>Like</div>
         <div className="cursor-pointer" onClick={() => setAddComment(!addComment)}><span className="mx-1"><CommentIcon /></span>Comment</div>
         <div className=""><span className="mx-1"><ShareIcon /></span>Share</div>
       </div>
       {comments && showComments && comments.length > 0 && <hr className="mt-2 border-t border-t-gray-200"></hr>}
       {comments && showComments && comments.map((comment) => (
         <div className="mt-2" key={comment.id}>
-          <div className="font-bold text-sm">{comment.User.username}</div>
+          <div className="font-bold text-sm underline">{comment.User.username}</div>
           <div className="text-sm">{comment.content}</div>
         </div>
       ))}
       {addComment && (
         <div className="max-w-full mt-4 relative">
-          <input className="w-[100%] p-2 px-3 rounded-xl sm:pr-[8%] pr-[10%] text-sm" type="text" placeholder="Add comment" value={comment} onChange={handleCommentChange} />
+          <input className="w-[100%] p-2 px-3 rounded-xl sm:pr-[8%] pr-[16%] text-sm border border-gray-600" type="text" placeholder="Add comment" value={comment} onChange={handleCommentChange} />
           <button
-            className="sm:w-[8%] w-[10%] p-2 text-sm absolute right-0 rounded-tr-xl rounded-br-xl bg-black text-white"
+            className="sm:w-[8%] w-[14%] p-2 text-sm absolute right-0 rounded-tr-xl rounded-br-xl bg-black text-white border-[1px] border-black"
             onClick={() => postComment(post.id)}>
             <SendIcon sx={{ fontSize: '18px' }} />
           </button>

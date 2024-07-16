@@ -15,9 +15,4 @@ module.exports = sequelize.define("Post", {
         type: DataTypes.STRING,
         allowNull: true
     },
-    likes: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        defaultValue: 0
-    }
 })
