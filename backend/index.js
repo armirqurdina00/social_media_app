@@ -13,18 +13,33 @@ const Like = require('./models/Like')
 const { Op } = require('sequelize');
 require('dotenv').config()
 
-app.use(bodyParser.json());
-
-app.use(bodyParser.urlencoded({
-    extended: true
-}));
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 
 app.use(cors());
+
+app.use(bodyParser.json({ limit: '50mb' }));
+
+app.use(bodyParser.urlencoded({
+    limit: '50mb',
+    extended: true,
+    parameterLimit: 50000
+}));
+
+// const corsOptions = {
+//     origin: 'http://localhost:3000', // Replace with your frontend domain
+//     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+//     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+//     credentials: true // Enable if you need to send cookies
+//   };
+
 
 const jwtSecret = process.env.JWT_SECRET
 
 const verifyToken = (req, res, next) => {
     const token = req.headers['authorization'];
+    // console.log(token)
     if (!token) {
         return res.status(401).send('Access Denied');
     }
@@ -37,6 +52,26 @@ const verifyToken = (req, res, next) => {
         res.status(400).send('Invalid Token');
     }
 };
+
+// Create a storage engine for multer
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const uploadPath = path.join(__dirname, '..', 'frontend', 'public');
+        if (!fs.existsSync(uploadPath)) {
+            fs.mkdirSync(uploadPath, { recursive: true });
+        }
+        cb(null, uploadPath);
+    },
+    filename: (req, file, cb) => {
+        cb(null, `${Date.now()}-${file.originalname}`);
+    },
+});
+
+const upload = multer({ storage });
+
+// Expect the field name 'images' in the form data
+
+// API ROUTES //
 
 app.post('/register', async (req, res) => {
     const { username, email, password } = req.body;
@@ -58,12 +93,33 @@ app.post('/login', async (req, res) => {
 });
 
 app.get('/posts', async (req, res) => {
-    // FIND ALL POSTS
     const posts = await Post.findAll({
         include: [User, { model: Comment, include: [User] }, { model: Like, include: [User] }],
         // order: [[Like, 'count', 'DESC']]
     })
     return res.json(posts)
+})
+
+// app.options('/post/add', function (req, res) {
+//     res.setHeader("Access-Control-Allow-Origin", "*");
+//     res.setHeader('Access-Control-Allow-Methods', '*');
+//     res.setHeader("Access-Control-Allow-Headers", "*");
+//     res.end();
+//   });
+
+app.post('/post/add', verifyToken, upload.array('images'), async (req, res) => {
+    let picName = ''
+    if (req.files.length) {
+        picName = req.files[0].filename
+    }
+    const content = req.body.content
+    if (picName) {
+        Post.create({ content: content, image: picName, user_id: req.user.user.id })
+    }
+    else {
+        Post.create({ content: content, user_id: req.user.user.id })
+    }
+    res.status(201).send('Post added');
 })
 
 app.get('/user-search', verifyToken, async (req, res) => {
@@ -89,7 +145,7 @@ app.get('/profile', verifyToken, async (req, res) => {
 
 app.get('/posts/:id/comments', async (req, res) => {
     const post_id = req.params.id;
-    const comments = await Comment.findAll( { where: { post_id: post_id }, include: [User] })
+    const comments = await Comment.findAll({ where: { post_id: post_id }, include: [User] })
     return res.json(comments)
 })
 
@@ -112,7 +168,7 @@ app.delete('/profile/delete', verifyToken, async (req, res) => {
 
 app.post('/like/add', verifyToken, async (req, res) => {
     const { post_id } = req.body;
-    const like = await Like.create( { post_id: post_id, user_id: req.user.user.id });
+    const like = await Like.create({ post_id: post_id, user_id: req.user.user.id });
     res.status(200).send('Like created');
 });
 
