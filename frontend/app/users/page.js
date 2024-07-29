@@ -30,6 +30,7 @@ async function getSearchUsers(token, user) {
 export default function SearchPage() {
 
     const [users, setUsers] = useState([])
+    const [loading, setLoading] = useState(true)
     const [userSearch, setUserSearch] = useState('')
     const router = useRouter()
     const pathname = usePathname();
@@ -56,29 +57,30 @@ export default function SearchPage() {
     }
 
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const users = await getUsers(token)
-                setUsers(users)
-            } catch (error) {
-                console.error('Error fetching data:', error);
+        if (userSearch === '') {
+            const fetchData = async () => {
+                try {
+                    const users = await getUsers(token)
+                    setUsers(users)
+                    setLoading(false)
+                } catch (error) {
+                    console.error('Error fetching data:', error);
+                }
+            };
+            fetchData();
             }
-        };
+        else {
+            const fetchData = async () => {
+                try {
+                    const users = await getSearchUsers(token, userSearch)
+                    setUsers(users)
+                } catch (error) {
+                    console.error('Error fetching data:', error);
+                }
+            };
+            fetchData();
+        }
 
-        fetchData();
-    }, [])
-
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const users = await getSearchUsers(token, userSearch)
-                setUsers(users)
-            } catch (error) {
-                console.error('Error fetching data:', error);
-            }
-        };
-
-        fetchData();
     }, [userSearch])
 
     return (
@@ -93,7 +95,9 @@ export default function SearchPage() {
                     onChange={handleOnChangeUserSearch}
                     onKeyUp={handleKeyPress} />
             </div>
+            {loading && <div className="text-center">Loading...</div>}
             {users && <UsersList users={users} />}
+            {users.length === 0 && !loading && <div className="text-center my-4">No users found</div>}
         </div>
     );
 }

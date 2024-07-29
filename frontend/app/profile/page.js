@@ -70,7 +70,7 @@ export default function Profile() {
 
     const handleDeleteUser = (e) => {
         e.preventDefault();
-        setDeleteConfirmation(true)
+        setDeleteConfirmation(!deleteConfirmation)
     }
 
     async function deleteUser() {
